@@ -2,14 +2,19 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/database');
+const cors = require('cors');
 
 // نقراو المتغيرات الموجودة في fichier .env
 dotenv.config();
 
 const app = express();
-
+app.use(cors());
 // Middleware باش نقراو JSON
 app.use(express.json());
+
+// نربطو routes متاع authentification
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
 
 // Connexion MongoDB
 connectDB();
