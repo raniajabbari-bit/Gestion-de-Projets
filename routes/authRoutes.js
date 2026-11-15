@@ -18,7 +18,7 @@ router.post('/login', login);
 
 // Route protégée
 router.get('/profile', authMiddleware, (req, res) => {
-    res.json(200).json({
+    res.status(200).json({
         message: "Accès autorisé",
         user: req.user
     });
