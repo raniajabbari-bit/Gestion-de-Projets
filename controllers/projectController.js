@@ -49,22 +49,67 @@ const createProject = async (req, res) => {
 
 
 // 2. Afficher les projets
+
 const getProjects = async (req, res) => {
     try {
-        let projects;
+        // Construire les critères de recherche
+        let filter = {};
 
-        // كان  Manager، ينجم يشوف projets الكل
-        if (req.user.role === 'manager') {
-            projects = await Project.find()
-                .populate('createdBy', 'nom login');
-        } else {
-            // User : ينجم كان projet متاعو 
-            projects = await Project.find({
-                createdBy: req.user.id
-            }).populate('createdBy', 'nom login');
+        // User : afficher uniquement ses projets
+        // Manager : afficher tous les projets
+        if (req.user.role !== 'manager') {
+            filter.createdBy = req.user.id;
         }
 
+        // 1. Recherche par titre ou description
+        if (req.query.search) {
+            const search = req.query.search.replace(
+                /[.*+?^${}()|[\]\\]/g, '\\$&'
+            );
+
+            filter.$or = [
+                { titre: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        // 2. Filtrage par statut
+        if (req.query.statut) {
+            const statuts = [
+                'en_attente',
+                'en_cours',
+                'termine'
+            ];
+
+            if (!statuts.includes(req.query.statut)) {
+                return res.status(400).json({
+                    message: "Statut invalide"
+                });
+            }
+
+            filter.statut = req.query.statut;
+        }
+
+        // 3. Tri des résultats
+        const allowedSortFields = [
+            'titre',
+            'dateDebut',
+            'dateFin',
+            'createdAt'
+        ];
+
+        const sortBy = allowedSortFields.includes(req.query.sortBy)
+            ? req.query.sortBy
+            : 'createdAt';
+
+        const order = req.query.order === 'asc' ? 1 : -1;
+
+        const projects = await Project.find(filter)
+            .populate('createdBy', 'nom login')
+            .sort({ [sortBy]: order });
+
         res.status(200).json({
+            total: projects.length,
             projects
         });
 
@@ -75,6 +120,7 @@ const getProjects = async (req, res) => {
         });
     }
 };
+
 
 
 // 3. Modifier un projet

@@ -79,28 +79,95 @@ const createTask = async (req, res) => {
 
 
 // 2. Afficher les tâches
+
 const getTasks = async (req, res) => {
     try {
+        // Récupérer les projets accessibles
         let projects;
-        // ken manger njibo les projet lkol
+
         if (req.user.role === 'manager') {
-            projects = await Project.find();
+            projects = await Project.find().select('_id');
         } else {
-            // ken user njibo ken les projet mte3o
             projects = await Project.find({
                 createdBy: req.user.id
-            });
+            }).select('_id');
         }
-       // njibo id lte3 projet
+
         const projectIds = projects.map(p => p._id);
-       // njibo tasks lmarbouta bil projet ili ynajm user ychofhm
-        const tasks = await Task.find({
+
+        // Filtrer les tâches par projets accessibles
+        let filter = {
             project: { $in: projectIds }
-        })
-        .populate('project', 'titre')
-        .populate('createdBy', 'nom login');
+        };
+
+        // 1. Recherche par titre ou description
+        if (req.query.search) {
+            const search = req.query.search.replace(
+                /[.*+?^${}()|[\]\\]/g, '\\$&'
+            );
+
+            filter.$or = [
+                { titre: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        // 2. Filtrage par statut
+        if (req.query.statut) {
+            const statuts = ['todo', 'doing', 'done'];
+
+            if (!statuts.includes(req.query.statut)) {
+                return res.status(400).json({
+                    message: "Statut invalide"
+                });
+            }
+
+            filter.statut = req.query.statut;
+        }
+
+        // 3. Filtrage par priorité
+        if (req.query.priorite) {
+            const priorites = ['basse', 'moyenne', 'haute'];
+
+            if (!priorites.includes(req.query.priorite)) {
+                return res.status(400).json({
+                    message: "Priorité invalide"
+                });
+            }
+
+            filter.priorite = req.query.priorite;
+        }
+
+        // 4. Filtrage par projet
+        if (req.query.project) {
+            filter.project = {
+                $in: projectIds.filter(
+                    id => id.toString() === req.query.project
+                )
+            };
+        }
+
+        // 5. Tri des tâches
+        const allowedSortFields = [
+            'titre',
+            'dateEcheance',
+            'createdAt',
+            'priorite'
+        ];
+
+        const sortBy = allowedSortFields.includes(req.query.sortBy)
+            ? req.query.sortBy
+            : 'createdAt';
+
+        const order = req.query.order === 'asc' ? 1 : -1;
+
+        const tasks = await Task.find(filter)
+            .populate('project', 'titre')
+            .populate('createdBy', 'nom login')
+            .sort({ [sortBy]: order });
 
         res.status(200).json({
+            total: tasks.length,
             tasks
         });
 
@@ -111,6 +178,7 @@ const getTasks = async (req, res) => {
         });
     }
 };
+
 
 
 // 3. Modifier une tâche
