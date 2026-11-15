@@ -17,6 +17,10 @@ app.use(express.json());
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
+// نربطو routes متاع projet
+const projectRoutes = require('./routes/projectRoutes');
+app.use('/api/projects', projectRoutes);
+
 // Connexion MongoDB
 connectDB();
 
