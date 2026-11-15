@@ -8,6 +8,7 @@ const {
 } = require('../controllers/authController');
 
 const authMiddleware = require('../middlewares/authMiddleware');
+const roleMiddleware = require('../middlewares/roleMiddleware');
 
 // Route d'inscription
 router.post('/register', register);
@@ -22,5 +23,19 @@ router.get('/profile', authMiddleware, (req, res) => {
         user: req.user
     });
 });
+
+
+// Route accessible uniquement aux managers
+router.get(
+    '/manager',
+    authMiddleware,
+    roleMiddleware('manager'),
+    (req, res) => {
+        res.status(200).json({
+            message: "Bienvenue Manager",
+            user: req.user
+        });
+    }
+);
 
 module.exports = router;
