@@ -20,6 +20,10 @@ app.use('/api/auth', authRoutes);
 // نربطو routes متاع projet
 const projectRoutes = require('./routes/projectRoutes');
 app.use('/api/projects', projectRoutes);
+//les routes mte3 task
+const taskRoutes = require('./routes/taskRoutes');
+
+app.use('/api/tasks', taskRoutes);
 
 // Connexion MongoDB
 connectDB();
